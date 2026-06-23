@@ -8,7 +8,7 @@ interface PropertyTypeCardProps {
 export function PropertyTypeCard({ item }: PropertyTypeCardProps) {
   return (
     <Link
-      to={`/${item.slug}`}
+      to={`/hotels?type=${item.slug}`}
       className="group block overflow-hidden rounded-2xl border border-border bg-card transition hover:shadow-lg"
     >
       <div className="aspect-[4/3] overflow-hidden">

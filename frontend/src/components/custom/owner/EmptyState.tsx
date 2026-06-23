@@ -1,4 +1,5 @@
 import { Package, type LucideIcon } from "lucide-react"
+import { SharedEmptyState } from "@/components/custom/shared/StateViews"
 
 interface EmptyStateProps {
   icon?: LucideIcon
@@ -7,13 +8,7 @@ interface EmptyStateProps {
   action?: React.ReactNode
 }
 
+// Thin wrapper over the shared empty state, keeping the owner default icon.
 export function EmptyState({ icon: Icon = Package, title, description, action }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-14 text-center">
-      <Icon className="size-10 text-muted-foreground" />
-      <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
-      {action && <div className="mt-4">{action}</div>}
-    </div>
-  )
+  return <SharedEmptyState icon={Icon} title={title} description={description} action={action} />
 }

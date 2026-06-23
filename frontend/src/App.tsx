@@ -66,7 +66,9 @@ import OwnerProfilePage from "./pages/owner/profile/owner-profile-page"
 import OwnerSettingsPage from "./pages/owner/settings/owner-settings-page"
 import PayoutsPage from "./pages/owner/payouts/payouts-page"
 import OwnerNotificationsPage from "./pages/owner/notifications/owner-notifications-page"
+import { ProtectedRoute } from "@/app/ProtectedRoute"
 import { AdminLayout } from "@/components/custom/admin/AdminLayout"
+import NotFoundPage from "./pages/not-found"
 import AdminDashboardPage from "./pages/admin/dashboard/dashboard-page"
 import AdminUsersPage from "./pages/admin/users/users-list-page"
 import AdminUserDetailPage from "./pages/admin/users/user-detail-page"
@@ -110,7 +112,7 @@ function App() {
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/onboarding/owner" element={<OwnerOnboardingPage />} />
-      <Route element={<UserAccountLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={["customer", "owner", "admin"]}><UserAccountLayout /></ProtectedRoute>}>
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<EditProfilePage />} />
         <Route path="/profile/bookings" element={<BookingsPage />} />
@@ -125,7 +127,7 @@ function App() {
       <Route path="/booking/success" element={<BookingSuccessPage />} />
       <Route path="/booking/failed" element={<BookingFailedPage />} />
       <Route path="/booking/cancelled" element={<BookingCancelledPage />} />
-      <Route element={<OwnerLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={["owner"]}><OwnerLayout /></ProtectedRoute>}>
         <Route path="/owner/dashboard" element={<OwnerDashboardPage />} />
         <Route path="/owner/analytics" element={<AnalyticsPage />} />
         <Route path="/owner/calendar" element={<CalendarPage />} />
@@ -155,7 +157,7 @@ function App() {
         <Route path="/owner/payouts" element={<PayoutsPage />} />
         <Route path="/owner/notifications" element={<OwnerNotificationsPage />} />
       </Route>
-      <Route element={<AdminLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={["admin"]}><AdminLayout /></ProtectedRoute>}>
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
@@ -171,6 +173,7 @@ function App() {
         <Route path="/admin/destinations" element={<AdminDestinationsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
