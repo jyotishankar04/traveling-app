@@ -32,12 +32,17 @@ enum UserStatus {
   BANNED
 }
 
+enum OtpType{
+  VERIFY_USER
+  RESET_PASSWORD
+}
+
 model User{
   id  String  @id @default(uuid())
   name String
   email String @unique
   password String
-  idEmailVerified Boolean @default(false)
+  isEmailVerified Boolean @default(false)
 
   avatar String?
   status UserStatus @default(ACTIVE)
@@ -46,15 +51,20 @@ model User{
   updatedAt DateTime @updatedAt
 
   addresses UserAddress[]
+  userProfile UserProfile?
+  otp Otp?
 }
 
 model UserProfile{
   id  String  @id @default(uuid())
+  userId String @unique
   dob DateTime
   age Int
   role UserRole @default(CUSTOMER)
   phoneNo String
   gender GenderType
+
+  user User @relation(fields:[userId], references: [id])
 }
 
 model UserAddress{
@@ -74,4 +84,16 @@ model UserAddress{
 
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Otp{
+  id  String  @id @default(uuid())
+  userId String @unique
+  otp Int
+  expireAt DateTime
+  createdAt DateTime @default(now())
+
+  type OtpType
+
+  user User @relation(fields:[userId], references:[id])
 }
