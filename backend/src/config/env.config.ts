@@ -15,6 +15,7 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => value === "true"),
+  JWT_SECRET: z.string(),
 });
 
 const env = envSchema.parse(process.env);

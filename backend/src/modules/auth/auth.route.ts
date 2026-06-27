@@ -1,10 +1,24 @@
-import { Router } from "express";
+import { Router, type CookieOptions } from "express";
 import { OtpType } from "../../../generated/prisma/client";
-import { userRegisterSchema, verifyEmailSchema } from "./auth.validator";
+import {
+  loginSchema,
+  userRegisterSchema,
+  verifyEmailSchema,
+} from "./auth.validator";
 import { prisma } from "../../config/db.config";
-import { hashPassword } from "../../utils/bcrypt.util";
+import { comparePassword, hashPassword } from "../../utils/bcrypt.util";
 import { generateOtp } from "../../utils/otp.utils";
 import { sendOtpMail } from "../../utils/mail.util";
+import { generateToken, jwtExpiresIn, verifyToken } from "../../utils/jwt.util";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { ca } from "zod/v4/locales";
+
+const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+};
 
 const router: Router = Router();
 
@@ -153,6 +167,171 @@ router.post("/verify-email", async (req, res) => {
       success: false,
       message: "Error in verifying email",
       error,
+    });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  const body = req.body;
+
+  const validator = loginSchema.safeParse(body);
+
+  if (!validator.success) {
+    return res.status(400).json({
+      success: false,
+      message: validator.error,
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email: validator.data.email,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        message: "Email not verified",
+      });
+    }
+
+    if (!(await comparePassword(validator.data.password, user.password))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+
+    // Here you would typically check the password and generate a token
+    // For simplicity, we are skipping that part
+    const accessToken = generateToken({
+      userId: user.id,
+      email: user.email,
+    });
+
+    const refreshToken = generateToken(
+      {
+        userId: user.id,
+        email: user.email,
+      },
+      jwtExpiresIn.refreshToken,
+    );
+
+    res.cookie("accessToken", accessToken, cookieOptions);
+    res.cookie("refreshToken", refreshToken, cookieOptions);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        accessToken,
+        refreshToken,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error in logging in",
+      error,
+    });
+  }
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid access token",
+      });
+    }
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.user?.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        email: true,
+        isEmailVerified: true,
+      },
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User fetched successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid access token",
+      error,
+    });
+  }
+});
+
+router.get("/refresh-token", async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      message: "Refresh token not found",
+    });
+  }
+
+  try {
+    const decoded = verifyToken(refreshToken);
+
+    if (!decoded.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token",
+      });
+    }
+
+    const accessToken = generateToken({
+      userId: decoded.userId,
+      email: decoded.email,
+    });
+
+    const newRefreshToken = generateToken({
+      userId: decoded.userId,
+      email: decoded.email,
+    });
+
+    res.cookie("accessToken", accessToken, cookieOptions);
+    res.cookie("refreshToken", newRefreshToken, cookieOptions);
+
+    return res.status(200).json({
+      success: true,
+      message: "Access token refreshed successfully",
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error in refreshing the token",
     });
   }
 });

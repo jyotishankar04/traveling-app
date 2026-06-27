@@ -2,7 +2,7 @@ import { OtpType, type User } from "../../generated/prisma/client";
 import { prisma } from "../config/db.config";
 
 function otpAlgo() {
-  return Math.floor(Math.random() * 999999 + 100000);
+  return Math.floor(Math.random() * 899999 + 100000);
 }
 
 export const generateOtp = async (user: User, type: OtpType) => {
